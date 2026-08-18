@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>妈妈的小帮手 · 家庭生活规划器</title>
+<style>
+:root{--bg:#FFF8F5;--panel:#FFFDFB;--side:#F9EDEF;--line:#E8C9CF;--text:#4A3B40;--muted:#927D84;--pink:#D98FA0;--pinkSoft:#F3D9DF;--green:#6EA07A;--greenSoft:#DCEBE0;--red:#D06B7B;--blue:#7C93D9;--amber:#D9A860}
+:root.dark{--bg:#2A2027;--panel:#352A30;--side:#211820;--line:#58414B;--text:#F8EAF0;--muted:#C6AEB9;--pink:#E6A1B5;--pinkSoft:#4A3640;--green:#7FB68B;--greenSoft:#31402F;--blue:#9AB0EA;--amber:#E6BB80}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",Roboto,sans-serif;transition:background-color .25s ease,color .25s ease}
+#app{display:flex;height:100vh}
+#side{width:220px;background:var(--side);padding:18px;border-right:1px solid var(--line);transition:width .25s ease,padding .25s ease,background-color .25s ease,border-color .25s ease;overflow:hidden;flex-shrink:0}
+#app.sideClosed #side{width:0;padding:0;border:none}
+#main{flex:1;overflow:auto;padding:24px;position:relative}
+.sideTop{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;white-space:nowrap}
+.brand{font-size:19px;font-weight:700;letter-spacing:.2px}
+.sideToggle{background:none;border:1px solid var(--line);border-radius:8px;width:28px;height:28px;color:var(--text);flex-shrink:0;transition:background-color .15s ease}
+.sideToggle:hover{background:var(--pinkSoft)}
+.openBtn{display:none;position:fixed;top:16px;left:16px;z-index:20;background:var(--panel);border:1px solid var(--line);border-radius:10px;width:38px;height:38px;box-shadow:0 3px 10px #00000018;align-items:center;justify-content:center;color:var(--text);font-size:16px;transition:background-color .15s ease,transform .12s ease}
+.openBtn:hover{background:var(--pinkSoft);transform:scale(1.05)}
+#app.sideClosed .openBtn{display:flex}
+h2{margin-top:2px;letter-spacing:.2px}
+h3{margin:0 0 8px 0}
+.sub{color:var(--muted);margin:-4px 0 16px;font-size:14px}
+button{cursor:pointer;font-family:inherit}
+.nav{display:flex;align-items:center;width:100%;padding:10px 12px;margin:4px 0;border:none;border-left:3px solid transparent;background:none;text-align:left;border-radius:8px;color:var(--text);font-size:14px;white-space:nowrap;transition:background-color .18s ease,border-color .18s ease,transform .12s ease}
+.nav:hover{background:var(--pinkSoft);transform:translateX(2px)}
+.nav.active{background:var(--pinkSoft);border-left:3px solid var(--pink);font-weight:600}
+#side>button:last-child{margin-top:14px;border:1px solid var(--line);border-radius:8px;padding:9px;background:none;color:var(--text);white-space:nowrap;transition:background-color .18s ease,transform .12s ease}
+#side>button:last-child:hover{background:var(--pinkSoft);transform:translateY(-1px)}
+.view{display:none}
+.view.active{display:block;animation:fadeIn .28s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px #0000000a;transition:box-shadow .2s ease,transform .2s ease,background-color .25s ease,border-color .25s ease}
+.card:hover{box-shadow:0 6px 18px #0000000f;transform:translateY(-1px)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.stat{font-size:28px;color:var(--pink);font-weight:700;transition:color .25s ease}
+.catwrap{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.catItem{display:inline-flex;align-items:center;gap:1px}
+.cat{padding:8px 14px;border:1px solid var(--line);border-radius:20px;background:none;color:var(--text);font-size:13px;transition:background-color .15s ease,color .15s ease,border-color .15s ease,transform .12s ease}
+.cat:hover{border-color:var(--pink);transform:translateY(-1px)}
+.cat.sel{background:var(--pink);color:#fff;border-color:var(--pink)}
+.cat.add{border-style:dashed;color:var(--muted)}
+.cat.add:hover{color:var(--pink);border-color:var(--pink)}
+.catDel{background:none;border:none;color:var(--muted);font-size:15px;line-height:1;padding:4px 6px;border-radius:50%;transition:color .15s ease,background-color .15s ease}
+.catDel:hover{color:var(--red);background:#00000008}
+.catadd{display:none;gap:8px;align-items:center;margin:4px 0 10px}
+.catadd input{margin:0}
+.fieldLabel{font-size:12px;color:var(--muted);margin:8px 0 2px;font-weight:600}
+.small{background:var(--pink);color:#fff;border:none;padding:9px 14px;border-radius:8px;white-space:nowrap;transition:filter .15s ease,transform .12s ease}
+.small:hover{filter:brightness(1.06)}
+.small:active{transform:scale(.97)}
+input,textarea{width:100%;padding:10px;margin:6px 0;border:1px solid var(--line);border-radius:8px;background:transparent;color:inherit;font-size:14px;transition:border-color .15s ease,box-shadow .15s ease}
+input:focus,textarea:focus{outline:none;border-color:var(--pink);box-shadow:0 0 0 3px var(--pinkSoft)}
+.primary{background:var(--pink);color:#fff;border:none;padding:10px 14px;border-radius:8px;font-size:14px;transition:filter .15s ease,transform .12s ease,box-shadow .15s ease}
+.primary:hover{filter:brightness(1.06);box-shadow:0 4px 12px #00000014}
+.primary:active{transform:scale(.97)}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.calHead{display:flex;justify-content:center;align-items:center;gap:16px;margin-bottom:8px}
+.calHead button{background:none;border:1px solid var(--line);border-radius:8px;width:32px;height:32px;color:var(--text);transition:background-color .15s ease,transform .12s ease}
+.calHead button:hover{background:var(--pinkSoft);transform:scale(1.05)}
+.calHead h3{min-width:140px;text-align:center}
+.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.w{font-size:12px;color:var(--muted);text-align:center;padding:8px;font-weight:600}
+.day{border:1px solid var(--line);min-height:92px;padding:6px;cursor:pointer;border-radius:8px;transition:background-color .15s ease,border-color .15s ease,transform .12s ease}
+.day:hover{background:var(--pinkSoft);transform:translateY(-1px)}
+.day.today{border-color:var(--pink);border-width:2px}
+.day.sel{background:var(--pinkSoft);border-color:var(--pink)}
+.day.empty{cursor:default;border-color:transparent}
+.day.empty:hover{background:none;transform:none}
+.num{font-size:12px;font-weight:600;color:var(--muted)}
+.day.today .num{color:var(--pink)}
+.ev{display:flex;justify-content:space-between;align-items:center;gap:3px;font-size:10px;color:#fff;padding:2px 4px;margin-top:3px;border-radius:4px;white-space:nowrap;overflow:hidden}
+.ev span.evTitle{overflow:hidden;text-overflow:ellipsis}
+.evx{opacity:.85;flex-shrink:0}
+.evx:hover{opacity:1}
+.ev.more{background:none!important;color:var(--muted);padding:2px 0}
+.list{margin-top:10px}
+.item{display:flex;justify-content:space-between;align-items:center;padding:10px 2px;border-bottom:1px solid var(--line);transition:background-color .15s ease}
+.item:hover{background:#00000005}
+.item:last-child{border-bottom:none}
+.xbtn{background:none;border:1px solid var(--line);border-radius:6px;color:var(--muted);padding:3px 9px;font-size:12px;flex-shrink:0;transition:color .15s ease,border-color .15s ease,transform .12s ease}
+.xbtn:hover{color:var(--red);border-color:var(--red);transform:scale(1.05)}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.agendaItem{display:flex;align-items:center;gap:8px;padding:7px 0}
+.agendaItem small{color:var(--muted)}
+.empty-note{color:var(--muted);font-size:14px;padding:6px 0}
+.todoSection{border-left:4px solid var(--pink);border-radius:10px;background:var(--panel);padding:12px 14px;margin-bottom:12px;transition:border-color .2s ease}
+.todoHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.todoHead b{font-size:15px}
+.todoItem{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.todoItem:last-child{border-bottom:none}
+.todoItem input[type=checkbox]{width:auto;margin:0;accent-color:var(--pink);flex-shrink:0}
+.todoItem span{flex:1;font-size:14px}
+.todoItem.done span{text-decoration:line-through;color:var(--muted)}
+.todoAdd{display:flex;gap:6px;margin-top:8px}
+.todoAdd input{margin:0}
+.todoAdd button{background:var(--pinkSoft);border:none;border-radius:8px;padding:0 14px;color:var(--text);white-space:nowrap}
+.sectionAdd{display:none;gap:8px;margin-bottom:12px}
+.sectionAdd input{margin:0}
+</style>
+</head>
+<body>
+<div id="authGate" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:50;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:20px;text-align:center">
+<div style="font-size:22px;font-weight:700">🌷 妈妈的小帮手</div>
+<div style="color:var(--muted);font-size:14px;margin-bottom:8px">登录以在你的所有设备间同步数据</div>
+<input id=authEmail type=email placeholder="邮箱地址" style="width:260px" onkeydown="if(event.key=='Enter')sendMagicLink()">
+<button class=primary style="width:260px" onclick="sendMagicLink()">发送登录链接</button>
+<div id=authMsg style="color:var(--muted);font-size:13px;min-height:18px"></div>
+</div>
+<div id="app" style="display:none">
+<div id="side">
+<div class="sideTop"><div class="brand">🌷 妈妈的小帮手</div><button class=sideToggle onclick="toggleSide()" title="收起侧边栏">«</button></div>
+<button class="nav active" data=v1>仪表盘</button>
+<button class="nav" data=v2>日历</button>
+<button class="nav" data=v3>财务</button>
+<button class="nav" data=v4>年度</button>
+<button onclick="toggleTheme()">🌙 主题</button>
+<button onclick="signOut()">🚪 退出登录</button>
+</div>
+<button class="openBtn" onclick="toggleSide()" title="展开侧边栏">☰</button>
+<div id="main">
+
+<div id=v1 class="view active">
+<h2 id=greetTitle>你好 👋</h2>
+<div class=sub>这是你的今日概览 🌷</div>
+<div class="grid">
+<div class=card><div id=inc class=stat>$0.00</div><div>收入</div></div>
+<div class=card><div id=exp class=stat>$0.00</div><div>支出</div></div>
+<div class=card><div id=bal class=stat>$0.00</div><div>结余</div></div>
+</div>
+<div class=card><h3>📅 今日安排</h3><div id=agenda></div></div>
+<div class=card>
+<div class=todoHead style="margin-bottom:10px"><h3 style="margin:0">📝 待办清单</h3><button class="cat add" onclick=toggleSectionAdd()>+ 添加清单</button></div>
+<div class=sectionAdd id=sectionAdd><input id=sectionInput placeholder="新的清单名称，例如：学校" onkeydown="if(event.key=='Enter')confirmAddSection()"><button class=small onclick=confirmAddSection()>添加</button></div>
+<div id=todoWrap></div>
+</div>
+</div>
+
+<div id=v2 class=view>
+<h2>日历</h2>
+<div class=card>
+<div class=calHead><button onclick="m(-1)">◀</button><h3 id=month></h3><button onclick="m(1)">▶</button></div>
+<div class=calGrid id=week></div><div class=calGrid id=cal></div>
+</div>
+<div class=card id=dayCard><h3 id=selDate>请选择日期</h3><div id=events class=list></div>
+<div class=fieldLabel>事件标题</div><input id=et placeholder="例如：家庭聚餐">
+<div class=row><div><div class=fieldLabel>开始时间</div><input type=time id=st></div><div><div class=fieldLabel>结束时间</div><input type=time id=en></div></div>
+<div class=fieldLabel>结束日期（多日事件可选填）</div><input type=date id=evEndDate>
+<div class=fieldLabel>分类</div><div id=evCats class=catwrap></div>
+<button class=primary onclick=addEvent()>添加事件</button></div>
+</div>
+
+<div id=v3 class=view>
+<h2>财务</h2>
+<div class="grid">
+<div class=card><div id=fbal class=stat>$0.00</div><div>结余</div></div>
+<div class=card><div id=fin class=stat style="color:var(--green)">$0.00</div><div>总收入</div></div>
+<div class=card><div id=fex class=stat style="color:var(--red)">$0.00</div><div>总支出</div></div>
+</div>
+<div class="grid">
+<div class=card><h3>添加收入</h3>
+<div id=icats class=catwrap></div>
+<div class=catadd id=icatadd><input id=icatinput placeholder="新分类名称" onkeydown="if(event.key=='Enter')confirmAddCat('income')"><button class=small onclick="confirmAddCat('income')">添加</button></div>
+<input type=number id=ia placeholder="金额" min="0" step="0.01"><input id=idesc placeholder="备注"><input type=date id=idate><button class=primary onclick="addMoney('income')">添加收入</button></div>
+<div class=card><h3>添加支出</h3>
+<div id=ecats class=catwrap></div>
+<div class=catadd id=ecatadd><input id=ecatinput placeholder="新分类名称" onkeydown="if(event.key=='Enter')confirmAddCat('expense')"><button class=small onclick="confirmAddCat('expense')">添加</button></div>
+<input type=number id=ea placeholder="金额" min="0" step="0.01"><input id=edesc placeholder="备注"><input type=date id=edate><button class=primary onclick="addMoney('expense')">添加支出</button></div>
+<div class=card><h3>最近交易记录</h3><div id=recent class=list></div></div>
+</div>
+</div>
+
+<div id=v4 class=view><h2>年度概览</h2><div class=card><div id=annual class=list></div></div></div>
+
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ====== Supabase config — fill these in from Project Settings → API ======
+const SUPABASE_URL = "https://nixjfvkdartdhnuhiubg.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_6Y9mP9ox2sX5JP6W3aZHwQ_g7Otnx68";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const defaultCats={income:["工资","家教","礼金","其他"],expense:["餐饮","交通","购物","账单","健康","其他"]};
+const EVENT_CATS=[{k:'family',label:'家庭',color:'var(--pink)'},{k:'school',label:'学校',color:'var(--green)'},{k:'work',label:'工作',color:'var(--blue)'},{k:'health',label:'健康',color:'var(--amber)'},{k:'other',label:'其他',color:'var(--muted)'}];
+const sectionColors=["var(--pink)","var(--green)","var(--blue)","var(--amber)"];
+const catColor=k=>(EVENT_CATS.find(c=>c.k===k)||{}).color||'var(--pink)';
+const catLabel=k=>(EVENT_CATS.find(c=>c.k===k)||{}).label||'';
+
+let selIC="工资",selEC="餐饮",selEvCat="family",cur=new Date(),sel=new Date();
+let currentUser=null,rtChannel=null;
+const db={i:[],e:[],s:[],c:JSON.parse(JSON.stringify(defaultCats)),t:[]};
+const fmt=n=>n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const todayStr=()=>new Date().toISOString().slice(0,10);
+const newLocalId=()=>Date.now()+"_"+Math.random().toString(36).slice(2);
+
+// ---- Auth ----
+async function sendMagicLink(){
+  const email=authEmail.value.trim();
+  if(!email)return;
+  authMsg.textContent="发送中…";
+  const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:window.location.href}});
+  authMsg.textContent=error?("出错了："+error.message):"登录链接已发送，请查收邮箱 📩";
+}
+async function signOut(){await sb.auth.signOut()}
+sb.auth.onAuthStateChange((event,session)=>{
+  currentUser=session?session.user:null;
+  if(currentUser){
+    authGate.style.display="none";
+    document.getElementById("app").style.display="flex";
+    loadAll();
+  }else{
+    if(rtChannel){sb.removeChannel(rtChannel);rtChannel=null}
+    authGate.style.display="flex";
+    document.getElementById("app").style.display="none";
+  }
+});
+
+// ---- Load + realtime sync ----
+async function loadAll(){
+  const uid=currentUser.id;
+  const [{data:inc},{data:exp},{data:evs},{data:cat},{data:sections}]=await Promise.all([
+    sb.from("income").select("*").eq("user_id",uid).order("date",{ascending:false}),
+    sb.from("expenses").select("*").eq("user_id",uid).order("date",{ascending:false}),
+    sb.from("events").select("*").eq("user_id",uid),
+    sb.from("categories").select("*").eq("user_id",uid).maybeSingle(),
+    sb.from("todo_sections").select("*").eq("user_id",uid).order("sort_order",{ascending:true})
+  ]);
+  db.i=(inc||[]).map(x=>({id:x.id,cat:x.cat,amt:Number(x.amt),desc:x.note||"",date:x.date}));
+  db.e=(exp||[]).map(x=>({id:x.id,cat:x.cat,amt:Number(x.amt),desc:x.note||"",date:x.date}));
+  db.s=(evs||[]).map(x=>({id:x.id,title:x.title,cat:x.cat,start:x.start_date,end:x.end_date,time:x.time||"",endTime:x.end_time||""}));
+  if(cat){
+    db.c={income:cat.income,expense:cat.expense};
+  }else{
+    await sb.from("categories").insert({user_id:uid,income:defaultCats.income,expense:defaultCats.expense});
+    db.c=JSON.parse(JSON.stringify(defaultCats));
+  }
+  db.t=(sections||[]).map(x=>({id:x.id,name:x.name,items:x.items||[]}));
+  if(!db.t.length){
+    const seed=["家庭","购物清单","个人"];
+    for(const [idx,name] of seed.entries()){
+      const {data}=await sb.from("todo_sections").insert({user_id:uid,name,items:[],sort_order:idx}).select().single();
+      if(data)db.t.push({id:data.id,name:data.name,items:[]});
+    }
+  }
+  if(!db.c.income.includes(selIC))selIC=db.c.income[0]||"";
+  if(!db.c.expense.includes(selEC))selEC=db.c.expense[0]||"";
+  idate.value=edate.value=todayStr();
+  renderEvCats();cats();render();
+  subscribeRealtime(uid);
+}
+function subscribeRealtime(uid){
+  if(rtChannel)sb.removeChannel(rtChannel);
+  rtChannel=sb.channel("life-planner-"+uid);
+  ["income","expenses","events","categories","todo_sections"].forEach(table=>{
+    rtChannel.on("postgres_changes",{event:"*",schema:"public",table,filter:"user_id=eq."+uid},()=>loadAll());
+  });
+  rtChannel.subscribe();
+}
+
+document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav,.view").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(b.getAttribute("data")).classList.add("active")});
+function toggleTheme(){document.documentElement.classList.toggle("dark")}
+function toggleSide(){const closed=document.getElementById('app').classList.toggle('sideClosed');localStorage.sideClosed=closed?'1':'0'}
+if(localStorage.sideClosed==='1')document.getElementById('app').classList.add('sideClosed');
+function greetText(){let h=new Date().getHours();if(h<11)return "早上好 ☀️";if(h<18)return "下午好 🌤️";return "晚上好 🌙"}
+greetTitle.textContent=greetText();
+
+function catBtn(container,type){
+  container.innerHTML="";
+  const list=db.c[type],selected=type=="income"?selIC:selEC;
+  list.forEach(c=>{
+    let wrap=document.createElement("span");wrap.className="catItem";
+    let b=document.createElement("button");
+    b.className="cat"+(c===selected?" sel":"");
+    b.textContent=c;
+    b.onclick=()=>{if(type=="income")selIC=c;else selEC=c;cats()};
+    wrap.appendChild(b);
+    if(list.length>1){
+      let del=document.createElement("button");
+      del.className="catDel";del.textContent="×";del.title="删除分类";
+      del.onclick=(ev)=>{ev.stopPropagation();delCat(type,c)};
+      wrap.appendChild(del)
+    }
+    container.appendChild(wrap)
+  });
+  let add=document.createElement("button");
+  add.className="cat add";add.textContent="+ 新增";
+  add.onclick=()=>toggleCatAdd(type);
+  container.appendChild(add)
+}
+function cats(){catBtn(icats,"income");catBtn(ecats,"expense")}
+function toggleCatAdd(type){
+  const el=document.getElementById(type=="income"?"icatadd":"ecatadd");
+  const open=el.style.display==="flex";
+  el.style.display=open?"none":"flex";
+  if(!open)document.getElementById(type=="income"?"icatinput":"ecatinput").focus()
+}
+async function confirmAddCat(type){
+  const inp=document.getElementById(type=="income"?"icatinput":"ecatinput");
+  const name=inp.value.trim();
+  if(!name)return;
+  if(!db.c[type].includes(name)){
+    db.c[type].push(name);
+    const {error}=await sb.from("categories").update({[type]:db.c[type]}).eq("user_id",currentUser.id);
+    if(error){alert("保存失败："+error.message)}
+  }
+  if(type=="income")selIC=name;else selEC=name;
+  inp.value="";
+  document.getElementById(type=="income"?"icatadd":"ecatadd").style.display="none";
+  render();cats()
+}
+async function delCat(type,name){
+  if(db.c[type].length<=1)return;
+  db.c[type]=db.c[type].filter(x=>x!==name);
+  const {error}=await sb.from("categories").update({[type]:db.c[type]}).eq("user_id",currentUser.id);
+  if(error){alert("删除失败："+error.message)}
+  if((type=="income"?selIC:selEC)===name){
+    if(type=="income")selIC=db.c.income[0];else selEC=db.c.expense[0]
+  }
+  render();cats()
+}
+
+async function addMoney(t){
+  let isIn=t=="income",amt=Number(isIn?ia.value:ea.value);
+  if(!amt||amt<=0)return;
+  let dateVal=(isIn?idate.value:edate.value)||todayStr();
+  let cat=isIn?selIC:selEC,note=(isIn?idesc.value:edesc.value).trim();
+  const table=isIn?"income":"expenses";
+  const {data,error}=await sb.from(table).insert({user_id:currentUser.id,cat,amt,note,date:dateVal}).select().single();
+  if(error){alert("保存失败："+error.message);return}
+  const o={id:data.id,cat,amt,desc:note,date:dateVal};
+  (isIn?db.i:db.e).unshift(o);
+  ia.value=ea.value=idesc.value=edesc.value="";
+  idate.value=edate.value=todayStr();
+  render()
+}
+async function delMoney(t,id){
+  const table=t=="income"?"income":"expenses";
+  const {error}=await sb.from(table).delete().eq("id",id);
+  if(error){alert("删除失败："+error.message);return}
+  if(t=="income")db.i=db.i.filter(x=>x.id!==id);else db.e=db.e.filter(x=>x.id!==id);
+  render()
+}
+
+function toggleSectionAdd(){
+  const el=document.getElementById('sectionAdd');
+  const open=el.style.display==="flex";
+  el.style.display=open?"none":"flex";
+  if(!open)document.getElementById('sectionInput').focus()
+}
+async function confirmAddSection(){
+  const inp=document.getElementById('sectionInput');
+  const name=inp.value.trim();
+  if(!name)return;
+  const {data,error}=await sb.from("todo_sections").insert({user_id:currentUser.id,name,items:[],sort_order:db.t.length}).select().single();
+  if(error){alert("保存失败："+error.message);return}
+  db.t.push({id:data.id,name:data.name,items:[]});
+  inp.value="";
+  document.getElementById('sectionAdd').style.display="none";
+  render()
+}
+async function delSection(id){
+  const {error}=await sb.from("todo_sections").delete().eq("id",id);
+  if(error){alert("删除失败："+error.message);return}
+  db.t=db.t.filter(x=>x.id!==id);
+  render()
+}
+async function addTodo(sectionId){
+  const inp=document.getElementById('todoInput_'+sectionId);
+  const text=inp.value.trim();
+  if(!text)return;
+  const sec=db.t.find(x=>x.id===sectionId);
+  const items=[...sec.items,{id:newLocalId(),text,done:false}];
+  const {error}=await sb.from("todo_sections").update({items}).eq("id",sectionId);
+  if(error){alert("保存失败："+error.message);return}
+  sec.items=items;
+  inp.value="";
+  render()
+}
+async function toggleTodo(sectionId,itemId){
+  const sec=db.t.find(x=>x.id===sectionId);
+  const it=sec.items.find(x=>x.id===itemId);
+  it.done=!it.done;
+  const {error}=await sb.from("todo_sections").update({items:sec.items}).eq("id",sectionId);
+  if(error){alert("保存失败："+error.message)}
+  render()
+}
+async function delTodo(sectionId,itemId){
+  const sec=db.t.find(x=>x.id===sectionId);
+  sec.items=sec.items.filter(x=>x.id!==itemId);
+  const {error}=await sb.from("todo_sections").update({items:sec.items}).eq("id",sectionId);
+  if(error){alert("删除失败："+error.message)}
+  render()
+}
+function renderTodos(){
+  todoWrap.innerHTML="";
+  db.t.forEach((sec,idx)=>{
+    const color=sectionColors[idx%sectionColors.length];
+    const box=document.createElement("div");
+    box.className="todoSection";box.style.borderLeftColor=color;
+    let itemsHtml=sec.items.map(it=>`<div class="todoItem${it.done?" done":""}"><input type=checkbox ${it.done?"checked":""} onchange="toggleTodo('${sec.id}','${it.id}')"><span>${it.text}</span><button class=xbtn onclick="delTodo('${sec.id}','${it.id}')">✕</button></div>`).join("");
+    box.innerHTML=`<div class=todoHead><b>${sec.name}</b><button class=xbtn onclick="delSection('${sec.id}')" title="删除清单">✕</button></div>`+
+      (sec.items.length?itemsHtml:`<div class=empty-note>暂时没有待办事项 🌸</div>`)+
+      `<div class=todoAdd><input id="todoInput_${sec.id}" placeholder="添加待办事项" onkeydown="if(event.key=='Enter')addTodo('${sec.id}')"><button onclick="addTodo('${sec.id}')">添加</button></div>`;
+    todoWrap.appendChild(box)
+  })
+}
+
+function renderEvCats(){
+  evCats.innerHTML="";
+  EVENT_CATS.forEach(c=>{
+    let b=document.createElement("button");
+    b.className="cat"+(c.k===selEvCat?" sel":"");
+    b.textContent=c.label;
+    b.style.borderColor=c.color;
+    if(c.k===selEvCat){b.style.background=c.color;b.style.color="#fff"}else{b.style.background="none";b.style.color="var(--text)"}
+    b.onclick=()=>{selEvCat=c.k;renderEvCats()};
+    evCats.appendChild(b)
+  })
+}
+
+function renderAgenda(){
+  agenda.innerHTML="";
+  const t=todayStr();
+  const todays=db.s.filter(x=>t>=x.start&&t<=x.end).sort((a,b)=>(a.time||"").localeCompare(b.time||""));
+  if(!todays.length){agenda.innerHTML=`<div class=empty-note>今天没有安排，放松一下吧 🌸</div>`;return}
+  todays.forEach(e=>{
+    let d=document.createElement("div");d.className="agendaItem";
+    d.innerHTML=`<span class=dot style="background:${catColor(e.cat)}"></span><b>${e.title}</b><small>${e.time?e.time+(e.endTime?" – "+e.endTime:""):""}${e.start!==e.end?" · 多日事件":""}</small>`;
+    agenda.appendChild(d)
+  })
+}
+
+function render(){
+  let tin=db.i.reduce((a,b)=>a+b.amt,0),tex=db.e.reduce((a,b)=>a+b.amt,0),bal2=tin-tex;
+  inc.textContent="$"+fmt(tin);exp.textContent="$"+fmt(tex);bal.textContent="$"+fmt(bal2);
+  fin.textContent="$"+fmt(tin);fex.textContent="$"+fmt(tex);fbal.textContent="$"+fmt(bal2);
+  recent.innerHTML="";
+  [...db.i.map(x=>({...x,t:"+",c:"var(--green)",type:"income"})),...db.e.map(x=>({...x,t:"-",c:"var(--red)",type:"expense"}))]
+    .sort((a,b)=>b.date.localeCompare(a.date))
+    .slice(0,10)
+    .forEach(x=>{
+      let d=document.createElement("div");d.className="item";
+      d.innerHTML=`<div><b>${x.cat}</b><br><small>${x.desc?x.desc+" · ":""}${x.date}</small></div><div style="display:flex;align-items:center;gap:10px"><span style="color:${x.c}">${x.t}$${fmt(x.amt)}</span><button class=xbtn onclick="delMoney('${x.type}','${x.id}')">✕</button></div>`;
+      recent.appendChild(d)
+    });
+  annual.innerHTML="";
+  let y=new Date().getFullYear();
+  for(let m=0;m<12;m++){
+    let ms=String(m+1).padStart(2,"0"),
+        i=db.i.filter(x=>x.date.startsWith(y+"-"+ms)).reduce((a,b)=>a+b.amt,0),
+        e=db.e.filter(x=>x.date.startsWith(y+"-"+ms)).reduce((a,b)=>a+b.amt,0);
+    annual.innerHTML+=`<div class=item><span>${new Date(y,m).toLocaleString("zh-CN",{month:"long"})}</span><span style="color:var(--green)">+$${fmt(i)}</span><span style="color:var(--red)">-$${fmt(e)}</span><b>$${fmt(i-e)}</b></div>`
+  }
+  renderAgenda();
+  renderTodos();
+  calR()
+}
+
+function m(n){cur.setMonth(cur.getMonth()+n);calR()}
+function calR(){
+  month.textContent=cur.toLocaleString("zh-CN",{month:"long",year:"numeric"});
+  week.innerHTML="";
+  ["日","一","二","三","四","五","六"].forEach(x=>week.innerHTML+=`<div class=w>${x}</div>`);
+  cal.innerHTML="";
+  let y=cur.getFullYear(),mo=cur.getMonth(),f=new Date(y,mo,1).getDay(),days=new Date(y,mo+1,0).getDate(),tds=todayStr();
+  for(let i=0;i<f;i++){let e=document.createElement("div");e.className="day empty";cal.appendChild(e)}
+  for(let d=1;d<=days;d++){
+    let ds=`${y}-${String(mo+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    let c=document.createElement("div");
+    c.className="day"+(ds===sel.toISOString().slice(0,10)?" sel":"")+(ds===tds?" today":"");
+    let evs=db.s.filter(x=>ds>=x.start&&ds<=x.end);
+    c.innerHTML=`<div class=num>${d}</div>`+evs.slice(0,2).map(e=>`<div class=ev style="background:${catColor(e.cat)}"><span class=evTitle>${e.time?e.time+" ":""}${e.title}</span><span class=evx onclick="event.stopPropagation();delEvent('${e.id}')">✕</span></div>`).join("")+(evs.length>2?`<div class="ev more">还有${evs.length-2}项</div>`:"");
+    c.onclick=()=>{sel=new Date(ds+"T00:00:00");calR();showDay();dayCard.scrollIntoView({behavior:"smooth",block:"nearest"});et.focus()};
+    cal.appendChild(c)
+  }
+  showDay()
+}
+function showDay(){
+  let ds=sel.toISOString().slice(0,10);
+  selDate.textContent=sel.toLocaleDateString("zh-CN",{year:"numeric",month:"long",day:"numeric",weekday:"long"});
+  events.innerHTML="";
+  const evs=db.s.filter(x=>ds>=x.start&&ds<=x.end).sort((a,b)=>(a.time||"").localeCompare(b.time||""));
+  if(!evs.length){events.innerHTML=`<div class=empty-note>这一天还没有安排</div>`}
+  evs.forEach(e=>{
+    let d=document.createElement("div");d.className="item";
+    let range=e.start!==e.end?`<br><small>📅 ${e.start} 至 ${e.end}（多日事件）</small>`:"";
+    let timeInfo=e.time?`<br><small>${e.time}${e.endTime?" – "+e.endTime:""}</small>`:"";
+    d.innerHTML=`<div><span class=dot style="background:${catColor(e.cat)};display:inline-block;margin-right:6px"></span><b>${e.title}</b><small style="color:var(--muted)"> · ${catLabel(e.cat)}</small>${timeInfo}${range}</div><button class=xbtn onclick="delEvent('${e.id}')">✕</button>`;
+    events.appendChild(d)
+  })
+}
+async function addEvent(){
+  if(!et.value.trim())return;
+  let startDs=sel.toISOString().slice(0,10);
+  let endDs=evEndDate.value||startDs;
+  if(endDs<startDs)endDs=startDs;
+  const row={user_id:currentUser.id,title:et.value.trim(),cat:selEvCat,start_date:startDs,end_date:endDs,time:st.value||null,end_time:en.value||null};
+  const {data,error}=await sb.from("events").insert(row).select().single();
+  if(error){alert("保存失败："+error.message);return}
+  db.s.push({id:data.id,title:data.title,cat:data.cat,start:data.start_date,end:data.end_date,time:data.time||"",endTime:data.end_time||""});
+  et.value=st.value=en.value=evEndDate.value="";
+  render()
+}
+async function delEvent(id){
+  const {error}=await sb.from("events").delete().eq("id",id);
+  if(error){alert("删除失败："+error.message);return}
+  db.s=db.s.filter(x=>x.id!==id);
+  render()
+}
+
+renderEvCats();
+</script>
+</body>
+</html>
