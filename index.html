@@ -105,16 +105,9 @@ input:focus,textarea:focus{outline:none;border-color:var(--pink);box-shadow:0 0 
 <body>
 <div id="authGate" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:50;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:20px;text-align:center">
 <div style="font-size:22px;font-weight:700">🌷 妈妈的小帮手</div>
-<div style="color:var(--muted);font-size:14px;margin-bottom:8px">登录以在你的所有设备间同步数据</div>
-<div id=authStep1 style="display:flex;flex-direction:column;gap:8px;align-items:center">
-<input id=authEmail type=email placeholder="邮箱地址" style="width:260px" onkeydown="if(event.key=='Enter')sendCode()">
-<button class=primary style="width:260px" onclick="sendCode()">发送验证码</button>
-</div>
-<div id=authStep2 style="display:none;flex-direction:column;gap:8px;align-items:center">
-<input id=authCode type=text inputmode=numeric maxlength=6 placeholder="6位验证码" style="width:260px;text-align:center;letter-spacing:4px;font-size:18px" onkeydown="if(event.key=='Enter')verifyCode()">
-<button class=primary style="width:260px" onclick="verifyCode()">登录</button>
-<button style="background:none;border:none;color:var(--muted);font-size:13px;text-decoration:underline" onclick="backToEmail()">重新输入邮箱</button>
-</div>
+<div style="color:var(--muted);font-size:14px;margin-bottom:8px">请输入密码进入</div>
+<input id=authCode type=password inputmode=numeric placeholder="密码" style="width:260px;text-align:center;letter-spacing:4px;font-size:18px" onkeydown="if(event.key=='Enter')doLogin()">
+<button class=primary style="width:260px" onclick="doLogin()">进入</button>
 <div id=authMsg style="color:var(--muted);font-size:13px;min-height:18px"></div>
 </div>
 <div id="app" style="display:none">
@@ -206,31 +199,15 @@ const todayStr=()=>new Date().toISOString().slice(0,10);
 const newLocalId=()=>Date.now()+"_"+Math.random().toString(36).slice(2);
 
 // ---- Auth ----
-let pendingEmail="";
-async function sendCode(){
-  const email=authEmail.value.trim();
-  if(!email)return;
-  authMsg.textContent="发送中…";
-  const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:true}});
-  if(error){authMsg.textContent="出错了："+error.message;return}
-  pendingEmail=email;
-  authMsg.textContent="验证码已发送，请查收邮箱 📩";
-  authStep1.style.display="none";
-  authStep2.style.display="flex";
-  authCode.focus();
-}
-async function verifyCode(){
-  const token=authCode.value.trim();
-  if(!token)return;
-  authMsg.textContent="验证中…";
-  const {error}=await sb.auth.verifyOtp({email:pendingEmail,token,type:"email"});
-  if(error){authMsg.textContent="验证码错误或已过期："+error.message;return}
-}
-function backToEmail(){
-  authStep2.style.display="none";
-  authStep1.style.display="flex";
-  authCode.value="";
-  authMsg.textContent="";
+// One fixed account behind the scenes — the email below is just an internal
+// identifier (never shown, never emailed to). Whoever knows the password can sign in.
+const FIXED_EMAIL="mum@life-planner.local";
+async function doLogin(){
+  const pw=authCode.value.trim();
+  if(!pw)return;
+  authMsg.textContent="登录中…";
+  const {error}=await sb.auth.signInWithPassword({email:FIXED_EMAIL,password:pw});
+  if(error){authMsg.textContent="密码错误："+error.message;return}
 }
 async function signOut(){await sb.auth.signOut()}
 sb.auth.onAuthStateChange((event,session)=>{
@@ -243,9 +220,7 @@ sb.auth.onAuthStateChange((event,session)=>{
     if(rtChannel){sb.removeChannel(rtChannel);rtChannel=null}
     authGate.style.display="flex";
     document.getElementById("app").style.display="none";
-    authStep2.style.display="none";
-    authStep1.style.display="flex";
-    authCode.value="";authEmail.value="";authMsg.textContent="";
+    authCode.value="";authMsg.textContent="";
   }
 });
 
