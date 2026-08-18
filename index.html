@@ -106,8 +106,15 @@ input:focus,textarea:focus{outline:none;border-color:var(--pink);box-shadow:0 0 
 <div id="authGate" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:50;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:20px;text-align:center">
 <div style="font-size:22px;font-weight:700">🌷 妈妈的小帮手</div>
 <div style="color:var(--muted);font-size:14px;margin-bottom:8px">登录以在你的所有设备间同步数据</div>
-<input id=authEmail type=email placeholder="邮箱地址" style="width:260px" onkeydown="if(event.key=='Enter')sendMagicLink()">
-<button class=primary style="width:260px" onclick="sendMagicLink()">发送登录链接</button>
+<div id=authStep1 style="display:flex;flex-direction:column;gap:8px;align-items:center">
+<input id=authEmail type=email placeholder="邮箱地址" style="width:260px" onkeydown="if(event.key=='Enter')sendCode()">
+<button class=primary style="width:260px" onclick="sendCode()">发送验证码</button>
+</div>
+<div id=authStep2 style="display:none;flex-direction:column;gap:8px;align-items:center">
+<input id=authCode type=text inputmode=numeric maxlength=6 placeholder="6位验证码" style="width:260px;text-align:center;letter-spacing:4px;font-size:18px" onkeydown="if(event.key=='Enter')verifyCode()">
+<button class=primary style="width:260px" onclick="verifyCode()">登录</button>
+<button style="background:none;border:none;color:var(--muted);font-size:13px;text-decoration:underline" onclick="backToEmail()">重新输入邮箱</button>
+</div>
 <div id=authMsg style="color:var(--muted);font-size:13px;min-height:18px"></div>
 </div>
 <div id="app" style="display:none">
@@ -181,7 +188,9 @@ input:focus,textarea:focus{outline:none;border-color:var(--pink);box-shadow:0 0 
 // ====== Supabase config — fill these in from Project Settings → API ======
 const SUPABASE_URL = "https://nixjfvkdartdhnuhiubg.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_6Y9mP9ox2sX5JP6W3aZHwQ_g7Otnx68";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {auth:{flowType:"implicit"}});
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Clean up any leftover token fragments from old magic-link attempts
+if(window.location.hash){history.replaceState(null,"",window.location.pathname+window.location.search)}
 
 const defaultCats={income:["工资","家教","礼金","其他"],expense:["餐饮","交通","购物","账单","健康","其他"]};
 const EVENT_CATS=[{k:'family',label:'家庭',color:'var(--pink)'},{k:'school',label:'学校',color:'var(--green)'},{k:'work',label:'工作',color:'var(--blue)'},{k:'health',label:'健康',color:'var(--amber)'},{k:'other',label:'其他',color:'var(--muted)'}];
@@ -197,12 +206,31 @@ const todayStr=()=>new Date().toISOString().slice(0,10);
 const newLocalId=()=>Date.now()+"_"+Math.random().toString(36).slice(2);
 
 // ---- Auth ----
-async function sendMagicLink(){
+let pendingEmail="";
+async function sendCode(){
   const email=authEmail.value.trim();
   if(!email)return;
   authMsg.textContent="发送中…";
-  const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:window.location.href}});
-  authMsg.textContent=error?("出错了："+error.message):"登录链接已发送，请查收邮箱 📩";
+  const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:true}});
+  if(error){authMsg.textContent="出错了："+error.message;return}
+  pendingEmail=email;
+  authMsg.textContent="验证码已发送，请查收邮箱 📩";
+  authStep1.style.display="none";
+  authStep2.style.display="flex";
+  authCode.focus();
+}
+async function verifyCode(){
+  const token=authCode.value.trim();
+  if(!token)return;
+  authMsg.textContent="验证中…";
+  const {error}=await sb.auth.verifyOtp({email:pendingEmail,token,type:"email"});
+  if(error){authMsg.textContent="验证码错误或已过期："+error.message;return}
+}
+function backToEmail(){
+  authStep2.style.display="none";
+  authStep1.style.display="flex";
+  authCode.value="";
+  authMsg.textContent="";
 }
 async function signOut(){await sb.auth.signOut()}
 sb.auth.onAuthStateChange((event,session)=>{
@@ -215,6 +243,9 @@ sb.auth.onAuthStateChange((event,session)=>{
     if(rtChannel){sb.removeChannel(rtChannel);rtChannel=null}
     authGate.style.display="flex";
     document.getElementById("app").style.display="none";
+    authStep2.style.display="none";
+    authStep1.style.display="flex";
+    authCode.value="";authEmail.value="";authMsg.textContent="";
   }
 });
 
